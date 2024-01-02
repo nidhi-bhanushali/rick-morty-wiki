@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import styled from "styled-components";
 import spinningGif from "../../assets/spinner.gif";
 import useDeviceDimensions from "../../hooks/useDeviceDimensions";
 import { StyledImage } from "./Characters";
 import { useParams } from "react-router";
+import { episodesContext } from "../../App";
 
 const StyledMainContainer = styled.div`
   display: flex;
@@ -58,27 +59,50 @@ const EpisodesContainer = styled.div`
 `;
 
 const CharacterPage = () => {
+  const { episodes, setAllEpisodes } = useContext(episodesContext);
   const [character, setCharacter] = useState({});
-  const [episodes, setEpisodes] = useState();
   const [origin, setOrigin] = useState();
   const [currentLocation, setCurrentLocation] = useState();
   const [isLoading, setIsLoading] = useState(false);
   const params = useParams();
 
-  const fetchEpisodes = async (episodes) => {
-    const responses = await Promise.all(
-      episodes.map(async (episodeUrl) => {
-        const res = await fetch(episodeUrl); // Send request for each id
-        return await res.json();
-      })
+  const [characterEpisodes, setCharacterEpisodes] = useState([]);
+
+  const fetchEpisodes = async (episodesUrls) => {
+    const episodeIds = episodesUrls.map(
+      (episode) => episode.split("episode/")[1]
     );
-    setEpisodes(responses);
+
+    const newEpisodes = episodeIds.filter(
+      (epi) =>
+        !episodes.find((episode) => {
+          return episode.id === +epi;
+        })
+    );
+
+    const existingEpisodes = episodes.filter((epi) => {
+      return episodeIds.includes(`${epi.id}`);
+    });
+    setCharacterEpisodes([...existingEpisodes]);
+
+    if (newEpisodes.length > 0) {
+      const episodesArr = await fetch(
+        `https://rickandmortyapi.com/api/episode/${newEpisodes}`
+      ).then((res) => res.json());
+
+      if (Array.isArray(episodesArr)) {
+        setAllEpisodes([...episodes, ...episodesArr]);
+        setCharacterEpisodes((prev) => [...prev, ...episodesArr]);
+        return;
+      }
+      setAllEpisodes([...episodes, episodesArr]);
+      setCharacterEpisodes((prev) => [...prev, episodesArr]);
+    }
   };
 
   const fetchOrigin = async (url) => {
     const res = await fetch(url);
     const data = await res.json();
-    console.log(data);
     setOrigin(data);
   };
 
@@ -161,7 +185,7 @@ const CharacterPage = () => {
           </div>
           <EpisodesContainer>
             <h3 className="margin-0">FEATURED IN</h3>
-            {episodes?.map((episode) => {
+            {characterEpisodes?.map((episode) => {
               return (
                 <div key={episode.id}>
                   <h5 className="margin-0">

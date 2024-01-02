@@ -13,7 +13,7 @@ const Character = ({ character }) => {
       isMobile={isMobile}
       onClick={() => navigate(`character/${character.id}`)}
     >
-      <div style={{ width: !isMobile && "220px" }}>
+      <div style={{ width: !isMobile && "35%", height: !isMobile && "100%" }}>
         <StyledImage src={character.image} alt={character.name} />
       </div>
       <InfoCard>
